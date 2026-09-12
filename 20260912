@@ -1,0 +1,209 @@
+import pygame
+import random
+import sys
+import math
+
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+pygame.display.set_caption("조건문 연습 - 슈팅 게임")
+clock = pygame.time.Clock()
+font = pygame.font.SysFont("malgungothic", 30)
+
+# ==========================================
+# [학생 수정 영역]
+# ==========================================
+PLAYER_SPEED = 7
+BULLET_SPEED = 10
+ENEMY_SPEED = 2
+WAVE_AMPLITUDE = 70
+WAVE_SPEED = 0.09
+# ==========================================
+
+player_x = 400
+player_y = 530
+bullets = []
+
+# 적 구조: [x, y, type, phase, base_x]
+enemies = [
+    [100, 100, 0, 0, 100],
+    [300, 150, 1, 0, 300],
+    [500, 80, 0, 0, 500],
+    [700, 130, 1, math.pi, 700],
+]
+
+score = 0
+lives = 3
+game_over = False
+invincible_timer = 0
+bottom_hit_count = 0
+
+def reset_game():
+    global player_x, bullets, enemies, score, lives, game_over
+    global invincible_timer, bottom_hit_count, ENEMY_SPEED
+    player_x = 400
+    bullets = []
+    enemies = [
+        [100, 100, 0, 0, 100],
+        [300, 150, 1, 0, 300],
+        [500, 80, 0, 0, 500],
+        [700, 130, 1, math.pi, 700],
+    ]
+    score = 0
+    lives = 3
+    game_over = False
+    invincible_timer = 0
+    bottom_hit_count = 0
+    ENEMY_SPEED = 2
+
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE and not game_over:
+                bullets.append([player_x + 20, player_y])
+            if event.key == pygame.K_r and game_over:
+                reset_game()
+
+    if not game_over:
+        # 플레이어 이동
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            player_x -= PLAYER_SPEED
+        if keys[pygame.K_RIGHT]:
+            player_x += PLAYER_SPEED
+        player_x = max(0, min(player_x, 760))
+
+        # 총알 이동
+        for bullet in bullets:
+            bullet[1] -= BULLET_SPEED
+        for bullet in bullets[:]:
+            if bullet[1] < 0:
+                bullets.remove(bullet)
+
+        # 적 이동
+        for enemy in enemies:
+            enemy[1] += ENEMY_SPEED
+
+            if enemy[2] == 1:  # 나선형 적
+                enemy[3] += WAVE_SPEED
+                enemy[0] = enemy[4] + WAVE_AMPLITUDE * math.sin(enemy[3])
+                enemy[0] = max(20, min(enemy[0], 780))
+
+            # 바닥에 닿았을 때
+            if enemy[1] > 600:
+                # -------------------------------------------------
+                # [조건문 문제 1] 무적 시간 체크
+                # 현재는 무조건 생명이 깎입니다.
+                # invincible_timer가 0 이하일 때만 생명이 깎이도록
+                # if문을 추가하세요.
+                # -------------------------------------------------
+                lives -= 1
+                bottom_hit_count += 1
+                invincible_timer = 60
+
+                # 적 위치 재설정
+                new_x = random.randint(80, 720)
+                enemy[1] = random.randint(-120, -30)
+                enemy[0] = new_x
+                enemy[4] = new_x
+                enemy[3] = random.uniform(0, math.pi * 2)
+
+        # -------------------------------------------------
+        # [조건문 문제 2] 점수에 따른 적 속도 증가
+        # 현재는 속도가 변하지 않습니다.
+        # 점수가 1000점 이상이면 ENEMY_SPEED = 3
+        # 점수가 2000점 이상이면 ENEMY_SPEED = 4
+        # 가 되도록 if ~ elif 문을 작성하세요.
+        # -------------------------------------------------
+
+
+        # 총알과 적 충돌
+        for bullet in bullets[:]:
+            hit = False
+            for enemy in enemies[:]:
+                distance_x = abs(bullet[0] - enemy[0])
+                distance_y = abs(bullet[1] - enemy[1])
+                if distance_x < 25 and distance_y < 25:
+                    if bullet in bullets:
+                        bullets.remove(bullet)
+                    if enemy in enemies:
+                        # -------------------------------------------------
+                        # [조건문 문제 3] 적 종류에 따른 점수
+                        # 현재는 무조건 100점만 올라갑니다.
+                        # type이 0이면 +100점, type이 1이면 +200점이
+                        # 되도록 if ~ else 문을 작성하세요.
+                        # -------------------------------------------------
+                        score += 100
+
+                        enemies.remove(enemy)
+                    hit = True
+                    break
+            if hit:
+                continue
+
+        # 적이 다 죽으면 재생성
+        if len(enemies) == 0:
+            for i in range(4):
+                x = random.randint(80, 720)
+                t = 1 if i % 2 == 1 else 0
+                enemies.append([x, random.randint(30, 130), t, random.uniform(0, 6.28), x])
+
+        # 무적 시간 감소
+        if invincible_timer > 0:
+            invincible_timer -= 1
+
+        # -------------------------------------------------
+        # [조건문 문제 4] 게임 오버 조건
+        # 현재는 생명이 0 이하일 때만 게임 오버입니다.
+        # 생명이 0 이하이거나, 바닥에 닿은 횟수(bottom_hit_count)가
+        # 6회 이상일 때도 게임 오버가 되도록 조건을 수정하세요.
+        # -------------------------------------------------
+        if lives <= 0:
+            game_over = True
+
+    # --------------------------------------
+    # 화면 그리기
+    # --------------------------------------
+    screen.fill((10, 10, 30))
+
+    # -------------------------------------------------
+    # [조건문 문제 5] 생명에 따른 플레이어 색상
+    # 현재는 항상 초록색입니다.
+    # 생명이 3개: 초록 (50, 255, 50)
+    # 생명이 2개: 노랑 (255, 255, 0)
+    # 생명이 1개 이하: 빨강 (255, 50, 50)
+    # 가 되도록 if ~ elif ~ else 문을 작성하세요.
+    # -------------------------------------------------
+    player_color = (50, 255, 50)
+
+    # 무적일 때 깜빡임 (이 부분은 수정하지 마세요)
+    if invincible_timer > 0 and invincible_timer % 10 < 5:
+        player_color = (100, 100, 100)
+
+    pygame.draw.rect(screen, player_color, (player_x, player_y, 40, 40))
+
+    for bullet in bullets:
+        pygame.draw.circle(screen, (255, 255, 0), (bullet[0], bullet[1]), 5)
+
+    for enemy in enemies:
+        color = (200, 80, 255) if enemy[2] == 1 else (255, 50, 50)
+        pygame.draw.circle(screen, color, (int(enemy[0]), int(enemy[1])), 15)
+
+    score_text = font.render(f"점수: {score}", True, (255, 255, 255))
+    lives_text = font.render(f"생명: {lives}", True, (255, 100, 100))
+    screen.blit(score_text, (20, 20))
+    screen.blit(lives_text, (20, 60))
+
+    if game_over:
+        over_text = font.render("게임 오버!", True, (255, 80, 80))
+        restart_text = font.render("R 키를 눌러 다시 시작", True, (255, 255, 255))
+        screen.blit(over_text, (320, 250))
+        screen.blit(restart_text, (250, 300))
+
+    pygame.display.flip()
+    clock.tick(60)
+
+
