@@ -1,0 +1,128 @@
+import pygame
+import sys
+import math
+import random
+
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+pygame.display.set_caption("반복문 연습 5단계 - 합체 시뮬레이션")
+clock = pygame.time.Clock()
+font = pygame.font.SysFont("malgungothic", 24)
+
+# ==========================================
+# [설정값]
+# ==========================================
+MERGE_DIST = 90     # 두 공의 거리가 이보다 가까우면 합쳐진다
+MIN_BALLS  = 4      # 공이 이 수보다 적어지면 새 공을 뿌린다
+# ==========================================
+
+def make_ball(x=None, y=None, size=12):
+    if x is None:
+        x = random.randint(50, 750)
+    if y is None:
+        y = random.randint(50, 550)
+    vx = random.choice([-3, -2, 2, 3])
+    vy = random.choice([-3, -2, 2, 3])
+    # 공 구조: [x, y, x속도, y속도, 크기]
+    return [x, y, vx, vy, size]
+
+balls = [make_ball() for _ in range(6)]
+
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+    screen.fill((10, 10, 30))
+
+    # 공 이동 + 벽에 튕기기
+    for ball in balls:
+        ball[0] += ball[2]
+        ball[1] += ball[3]
+        if ball[0] < 20 or ball[0] > 780:
+            ball[2] = -ball[2]
+        if ball[1] < 20 or ball[1] > 580:
+            ball[3] = -ball[3]
+
+    # -------------------------------------------------
+    # [이중 반복문 + 리스트 변형]  가까운 두 공을 합친다.
+    #   enumerate 로 각 공의 '번호(i, j)'를 얻는다.
+    #   j 가 i 보다 클 때만 비교한다 → 같은 짝을 두 번 세지 않기 위함.
+    #   합칠 두 공의 번호를 removed 에 기록해 두었다가,
+    #   반복이 끝난 뒤에 한꺼번에 처리한다.
+    #   ( 반복 도중에 balls 에서 직접 삭제하면 순서가 꼬여 위험하다 )
+    # -------------------------------------------------
+    removed = set()
+    new_balls = []
+    for i, a in enumerate(balls):
+        for j, b in enumerate(balls):
+            if j <= i:
+                continue
+            if i in removed or j in removed:
+                continue
+            dx = a[0] - b[0]
+            dy = a[1] - b[1]
+            dist = math.sqrt(dx * dx + dy * dy)
+            if dist < MERGE_DIST:
+                # 두 공을 합친 '더 큰 공' 하나를 새로 만든다
+                mx = (a[0] + b[0]) // 2
+                my = (a[1] + b[1]) // 2
+                new_size = a[4] + b[4]
+                merged = make_ball(mx, my, new_size)
+                new_balls.append(merged)
+                removed.add(i)
+                removed.add(j)
+
+    # 합쳐지지 않고 살아남은 공 + 새로 생긴 큰 공
+    survivors = [ball for k, ball in enumerate(balls) if k not in removed]
+    balls = survivors + new_balls
+
+    # 공이 너무 적어지면 새로 뿌린다
+    while len(balls) < MIN_BALLS:
+        balls.append(make_ball())
+
+    # 공 그리기 (크기는 ball[4], 너무 커지지 않게 상한선)
+    for ball in balls:
+        r = min(ball[4], 60)
+        pygame.draw.circle(screen, (r,0,0), (int(ball[0]), int(ball[1])), r)
+
+    info = font.render(f"공 개수: {len(balls)}", True, (255, 255, 255))
+    screen.blit(info, (20, 15))
+
+    pygame.display.flip()
+    clock.tick(60)
+
+
+# =========================================================
+# [실험 가이드]  하나씩 바꿔보고 관찰하세요. (해봤으면 원래대로 되돌리기)
+#
+#   가이드 1) 맨 위의 MERGE_DIST 를 40 에서 90 으로 바꿔보세요.
+#            → 공들이 훨씬 쉽게, 자주 합쳐집니다.
+#              이중 반복문 안 if 의 거리 기준이 '합칠 짝'을 정한다는 뜻이에요.
+#
+#   가이드 2) 안쪽 for 의  if j <= i: continue  줄을  if j == i: continue  로 바꿔보세요.
+#            → 같은 짝(예: 1번-3번, 3번-1번)을 두 번 처리하게 되어 동작이 이상해집니다.
+#              enumerate 의 번호(i, j)로 '중복 짝'을 걸러낸다는 걸 확인하는 거예요.
+#              (확인했으면 반드시 원래 j <= i 로 되돌리기)
+#
+#   가이드 3) 공을 그릴 때, 큰 공일수록 빨갛게 칠해보세요.
+#              r = min(ball[4], 60)
+#              red = min(255, ball[4] * 10)
+#              pygame.draw.circle(screen, (red, 120, 200), (int(ball[0]), int(ball[1])), r)
+#            → 공의 크기 ball[4] 를 색에도 활용할 수 있다는 뜻이에요.
+# =========================================================
+
+
+# =========================================================
+# [반복문 문제 1]  (가이드 없음 — 직접 해결하세요)
+#
+#   요구사항:
+#   - 공이 너무 커지면 '터져서' 작은 공 여러 개로 쪼개지게 만드세요.
+#   - 조건: 크기(ball[4]) 가 50 이상인 공은 터진다.
+#   - 터진 공은 balls 에서 사라지고, 그 자리 근처에
+#     크기 12 짜리 작은 공 3개가 새로 생겨나야 합니다.
+#   - 힌트: '합체' 코드와 똑같은 방식으로 접근하세요.
+#           (터질 공을 반복 도중 바로 지우지 말고, 살아남을 공과 새로 생길 공을
+#            각각 새 리스트에 모았다가 마지막에 balls 를 교체)
+# =========================================================
