@@ -1,0 +1,103 @@
+import pygame
+import sys
+import math
+
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+pygame.display.set_caption("함수 연습 3단계 - 거리 측정 (return)")
+clock = pygame.time.Clock()
+font = pygame.font.SysFont("malgungothic", 26)
+
+TARGET_X = 400   # 목표 지점(깃발) 위치
+TARGET_Y = 300
+
+
+# -------------------------------------------------
+# [함수 정의]  get_distance(x1, y1, x2, y2)
+#   - 지금까지의 함수(draw_tree 등)는 '그리기'만 하고 끝났다.
+#   - 이 함수는 그리지 않는다. 대신 두 점 사이의 거리를 '계산해서 돌려준다'.
+#   - 계산 결과를 return 으로 내보내면, 부른 쪽에서 그 값을 받아 쓸 수 있다.
+#   - 즉  d = get_distance(...) 처럼, 돌려준 값이 d 에 담긴다.
+# -------------------------------------------------
+def get_distance(x1, y1, x2, y2):
+    dx = x1 - x2
+    dy = y1 - y2
+    distance = math.sqrt(dx * dx + dy * dy)
+    return distance
+
+
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+    screen.fill((10, 10, 30))
+
+    # 플레이어 공은 마우스를 따라다닌다
+    px, py = pygame.mouse.get_pos()
+
+    # -------------------------------------------------
+    # 함수를 불러서, 돌려준 '거리 값'을 d 에 받는다.
+    #   d 는 평범한 숫자라, 아래에서 색을 정하거나 화면에 표시하는 데 쓸 수 있다.
+    # -------------------------------------------------
+    d = get_distance(px, py, TARGET_X, TARGET_Y)
+
+    # 거리(d)에 따라 연결선 색을 정한다 (가까우면 초록, 멀면 빨강)
+    if d < 150:
+        line_color = (80, 255, 120)
+    else:
+        line_color = (255, 90, 90)
+
+    # 목표 지점(깃발)
+    pygame.draw.circle(screen, (255, 220, 90), (TARGET_X, TARGET_Y), 14)
+    # 목표와 플레이어를 잇는 선
+    pygame.draw.line(screen, line_color, (px, py), (TARGET_X, TARGET_Y), 2)
+    # 플레이어 공
+    pygame.draw.circle(screen, (120, 200, 255), (px, py), 16)
+
+    # 돌려받은 거리 값을 화면에 표시
+    screen.blit(font.render(f"거리: {int(d)}", True, (255, 255, 255)), (20, 15))
+
+    pygame.display.flip()
+    clock.tick(60)
+
+
+# =========================================================
+# [실험 가이드]  하나씩 해보고 화면이 어떻게 달라지는지 관찰하세요. (해봤으면 되돌리기)
+#
+#   가이드 1) 함수 안 마지막 줄  return distance  를  return distance + 100  으로 바꿔보세요.
+#            → 화면의 "거리" 숫자가 전부 100 씩 커집니다.
+#              함수가 돌려주는(return) 값이 '그대로' d 에 담긴다는 뜻이에요.
+#              함수가 뭘 돌려주느냐가 결과를 정합니다.
+#
+#   가이드 2) 돌려받은 d 를 '새로운 곳'에도 써보세요.
+#            선을 그리는 줄 아래에 이 한 줄을 추가:
+#              pygame.draw.circle(screen, (60, 60, 90), (TARGET_X, TARGET_Y), int(d), 1)
+#            → 목표를 중심으로, 공까지의 거리만큼 커지는 원(고리)이 생깁니다.
+#              돌려받은 값은 평범한 숫자라, 표시 말고 계산·그리기 어디든 쓸 수 있어요.
+#
+#   가이드 3) 함수 안  return distance  '바로 아래'에  return 0  을 한 줄 추가해보세요.
+#              return distance
+#              return 0
+#            → 예상: 거리가 0 으로 나올까요?  실제로 실행하면 안 바뀝니다!
+#              return 을 만나는 순간 함수는 '즉시 끝'나서, 그 아래 줄은 실행되지 않아요.
+#              (확인했으면 추가한  return 0  을 지우세요.)
+# =========================================================
+
+
+# =========================================================
+# [함수 문제 1]  (가이드 없음 — 직접 해결하세요)
+#
+#   요구사항:
+#   - 거리에 따라 '점수'를 돌려주는 함수 get_score(distance) 를 직접 만드세요.
+#   - 규칙: 가까울수록 높은 점수. (예: 점수 = 300 - 거리, 단 0점 밑으로는 안 내려가게)
+#   - 메인 루프에서 이 함수를 불러 점수를 돌려받고,
+#     "거리" 표시 아래줄에  "점수: OOO" 으로 보여주세요.
+#
+#   * 힌트:
+#     - get_distance 를 흉내 내되, '그리지 말고' 계산 결과를 return 으로 돌려주세요.
+#     - def get_score(distance):  로 시작해서, 마지막에 return 으로 점수를 내보내면 됩니다.
+#     - 돌려받은 점수는 s = get_score(d) 처럼 변수에 담아 쓰세요. (가이드 2 방식)
+# =========================================================
+
